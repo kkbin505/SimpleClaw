@@ -1,0 +1,14 @@
+name: claw
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - openai>=1.0.0
+      - google-auth
+      - google-auth-oauthlib
+      - google-auth-httplib2
+      - google-api-python-client
+      - python-dotenv

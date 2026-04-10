@@ -6,7 +6,7 @@ from ai_parser import parse_email_for_events
 from config import TIMEZONE
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
@@ -37,12 +37,25 @@ class PersonalAssistant:
     def _process(self, msg: dict):
         logger.info(f"Processing: \"{msg['subject']}\" from {msg['sender']}")
 
-        current_dt = datetime.now().strftime(f"%Y-%m-%d %H:%M (%Z, {TIMEZONE})")
+        # 使用 zoneinfo 获取配置时区的当前时间，确保 AI 推算相对日期（如“明天”）时准确
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo(TIMEZONE))
+        current_dt = now.strftime("%Y-%m-%d (%A) %H:%M %Z")
+        
+        # 调试：确保我们发给 AI 的本地时间是正确的
+        logger.info(f"Sending to AI - Current Local Time: {current_dt}")
+
         result = parse_email_for_events(msg, current_dt)
+        logger.debug(f"AI Parsing Result for \"{msg['subject']}\": {result}")
 
         if result.get("has_event"):
             events = result.get("events", [])
             for event_data in events:
+                # 即使 AI 认为包含日程，我们也先在代码层面做一次“硬去重”
+                if self.calendar.is_duplicate(event_data['title'], event_data['start_datetime']):
+                    logger.info(f"  ⏭️  Duplicate ignored: [{event_data['title']}] at {event_data['start_datetime']}")
+                    continue
+                
                 link = self.calendar.create_event(event_data)
                 logger.info(f"  ✅ Created: [{event_data['title']}] @ {event_data['start_datetime']} → {link}")
         else:

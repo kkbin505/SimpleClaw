@@ -12,9 +12,10 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar",
 ]
 
-CREDENTIALS_FILE = "credentials/google_credentials.json"
+# CREDENTIALS_FILE set by user to credentials\credentials.json, using forward slash for cross-platform safety
+CREDENTIALS_FILE = "credentials/credentials.json"
 TOKEN_FILE = "credentials/token.json"
 
 POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", 60))
-TIMEZONE = os.getenv("TIMEZONE", "Asia/Shanghai")
+TIMEZONE = os.getenv("TIMEZONE", "America/Los_Angeles")
 CALENDAR_ID = "primary"

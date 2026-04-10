@@ -1,0 +1,10 @@
+*.pyc
+assistant/credentials/calender.json
+assistant/credentials/credentials.json
+assistant/credentials/google_credentials.json
+assistant/credentials/test_API.py
+assistant/credentials/token.json
+
+assistant/__pycache__
+
+assistant/credentials

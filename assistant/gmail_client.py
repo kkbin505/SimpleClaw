@@ -34,13 +34,53 @@ class GmailClient:
 
     def _parse_message(self, msg: dict) -> dict:
         headers = {h["name"]: h["value"] for h in msg["payload"]["headers"]}
+        msg_id = msg["id"]
+        body = self._extract_body(msg["payload"])
+        
+        # 尝试提取 .ics 附件内容
+        calendar_data = self._extract_calendar_data(msg["payload"], msg_id)
+        if calendar_data:
+            body += f"\n\n[日历附件内容 (ICS)]:\n{calendar_data}"
+
         return {
-            "id": msg["id"],
+            "id": msg_id,
             "subject": headers.get("Subject", ""),
             "sender": headers.get("From", ""),
             "date": headers.get("Date", ""),
-            "body": self._extract_body(msg["payload"]),
+            "body": body,
         }
+
+    def _extract_calendar_data(self, payload: dict, msg_id: str) -> str:
+        """从附件中寻找并提取 .ics 内容"""
+        if "parts" in payload:
+            for part in payload["parts"]:
+                data = self._extract_calendar_data(part, msg_id)
+                if data:
+                    return data
+        
+        mime_type = payload.get("mimeType")
+        filename = payload.get("filename", "")
+        
+        if mime_type == "text/calendar" or filename.lower().endswith(".ics"):
+            if "body" in payload and "data" in payload["body"]:
+                data = payload["body"]["data"]
+                return base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+            elif "body" in payload and "attachmentId" in payload["body"]:
+                att_id = payload["body"]["attachmentId"]
+                return self._fetch_attachment(msg_id, att_id)
+        return ""
+
+    def _fetch_attachment(self, msg_id: str, attachment_id: str) -> str:
+        """从 API 抓取附件二进制数据并转为文本"""
+        try:
+            attachment = self.service.users().messages().attachments().get(
+                userId="me", messageId=msg_id, id=attachment_id
+            ).execute()
+            data = attachment.get("data", "")
+            return base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+        except Exception as e:
+            logger.error(f"Failed to download attachment {attachment_id}: {e}")
+            return f"（附件下载失败: {e}）"
 
     def _extract_body(self, payload: dict) -> str:
         """递归提取纯文本 body"""
