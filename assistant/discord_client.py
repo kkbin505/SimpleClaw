@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_USERS = os.environ.get("ALLOWED_USER_IDS", "").split(",")
+
 class AssistantBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
@@ -27,7 +29,7 @@ class AssistantBot(commands.Bot):
             return
             
         # 权限校验
-        if message.author.id not in ALLOWED_USER_IDS:
+        if str(message.author.id) not in ALLOWED_USERS:
             logger.info(f"忽略未授权用户: {message.author} (ID: {message.author.id})")
             return
 
@@ -71,7 +73,7 @@ class AssistantBot(commands.Bot):
                         await message.reply(f"✅ 已为你安排日程：\n**{event_data['title']}**\n⏰ {event_data['start_datetime']}\n🔗 [查看日历]({link})")
                 else:
                     # 仅在日志输出，不发回 Discord
-                    logger.info(f"解析结果表明无日程需求。原因: {result.get('reason', '无')}")
+                    logger.info(f"好的。原因: {result.get('reason', '无')}")
             except Exception as e:
                 logger.error(f"Discord 任务处理出错: {e}", exc_info=True)
                 await message.reply("抱歉，处理该任务时发生错误，详情请查看本地日志。")
