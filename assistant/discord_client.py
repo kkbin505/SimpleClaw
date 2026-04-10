@@ -6,6 +6,7 @@ from calendar_client import CalendarClient
 from config import TIMEZONE, ALLOWED_USER_IDS
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import os
 
 logger = logging.getLogger(__name__)
 
