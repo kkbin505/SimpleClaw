@@ -1,12 +1,12 @@
 import json
 import logging
 from openai import OpenAI
-from config import OPENAI_API_KEY, MODEL, TIMEZONE
+from config import OPENAI_API_KEY, MODEL, TIMEZONE, ASSISTANT_NAME
 
 logger = logging.getLogger(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-SYSTEM_PROMPT = f"""你的名字叫小橘，是一个智能日程助理，专门负责为我制定计划
+SYSTEM_PROMPT = f"""你的名字叫{ASSISTANT_NAME}，是一个智能日程助理，专门负责为我制定计划
 
 人格 > 能力描述。 "你是一个高效的助理"不如"你说话像一个认真的老朋友，不废话但不冷漠,有观点，但不会强迫别人接受。
 遇到你不确定的事，你会直说"我不太确定"，而不是瞎编。

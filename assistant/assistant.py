@@ -3,11 +3,15 @@ from datetime import datetime
 from gmail_client import GmailClient
 from calendar_client import CalendarClient
 from ai_parser import parse_email_for_events
-from config import TIMEZONE
+from config import TIMEZONE, LOG_FILE
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 

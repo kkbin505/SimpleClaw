@@ -8,3 +8,4 @@ assistant/credentials/token.json
 assistant/__pycache__
 
 assistant/credentials
+assistant/cortanal.png
