@@ -2,6 +2,7 @@ import logging
 from googleapiclient.discovery import build
 from google_auth import get_credentials
 from config import CALENDAR_ID, TIMEZONE
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +10,58 @@ logger = logging.getLogger(__name__)
 class CalendarClient:
     def __init__(self):
         self.service = build("calendar", "v3", credentials=get_credentials())
+
+    def list_events(self, days: int = 7, max_results: int = 15) -> list:
+        from zoneinfo import ZoneInfo
+        from datetime import datetime, timedelta
+
+        tz = ZoneInfo(TIMEZONE)
+        now = datetime.now(tz)
+        time_max = now + timedelta(days=days)
+
+        results = self.service.events().list(
+            calendarId=CALENDAR_ID,
+            timeMin=now.isoformat(),
+            timeMax=time_max.isoformat(),
+            maxResults=max_results,
+            singleEvents=True,
+            orderBy="startTime",
+        ).execute()
+
+        events = results.get("items", [])
+        formatted = []
+
+        for e in events:
+            all_day = "dateTime" not in e["start"]
+            start_str = e["start"].get("dateTime") or e["start"].get("date")
+            end_str   = e["end"].get("dateTime")   or e["end"].get("date")
+
+            # 计算距现在多少小时（帮助 GPT 判断紧迫性）
+            hours_until = None
+            if not all_day and start_str:
+                try:
+                    start_dt = datetime.fromisoformat(start_str).astimezone(tz)
+                    hours_until = round((start_dt - now).total_seconds() / 3600, 1)
+                except Exception:
+                    pass
+
+            formatted.append({
+                "id":          e["id"],
+                "title":       e.get("summary", "（无标题）"),
+                "start":       start_str,
+                "end":         end_str,
+                "location":    e.get("location", ""),
+                "description": e.get("description", ""),
+                "all_day":     all_day,
+                "hours_until": hours_until,   # GPT 用这个判断紧迫性
+            })
+
+        return formatted
+
+    def delete_event(self, event_id: str):
+        """删除日程"""
+        self.service.events().delete(calendarId=CALENDAR_ID, eventId=event_id).execute()
+        logger.info(f"Event {event_id} deleted.")
 
     def is_duplicate(self, title: str, start_dt: str) -> bool:
         """检查指定时间点是否已存在同名任务"""
