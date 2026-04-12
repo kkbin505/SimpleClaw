@@ -97,6 +97,8 @@ class ToolExecutor:
         self.calendar = CalendarClient()
 
     def execute(self, name, args):
+        # --- 暴力拦截：确保物理层面也打不开日历 ---
+        return {"error": "对不起，我已经下班锁好档案柜了，明天上班再处理。"}
         if name == "list_upcoming_events":
             days = args.get("days", 7)
             max_results = args.get("max_results", 15)

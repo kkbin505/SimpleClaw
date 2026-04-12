@@ -9,3 +9,9 @@ assistant/__pycache__
 
 assistant/credentials
 assistant/cortanal.png
+assistant/molt_bot.log
+assistant/moltshit/openapi.json
+assistant/moltshit/POW.md
+assistant/moltshit/skill.md
+assistant/raw_dump.json
+assistant/test_moltshit_client.py

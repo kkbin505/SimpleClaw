@@ -11,8 +11,8 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 MODEL = "gpt-4o-mini"
 
 SCOPES = [
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/calendar",
+    # "https://www.googleapis.com/auth/gmail.modify",
+    # "https://www.googleapis.com/auth/calendar",
 ]
 
 # CREDENTIALS_FILE set by user to credentials\credentials.json, using forward slash for cross-platform safety
@@ -24,8 +24,8 @@ TIMEZONE = os.getenv("TIMEZONE", "America/Los_Angeles")
 CALENDAR_ID = "primary"
 
 # Discord Configuration
-DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
-ALLOWED_USER_IDS = [int(uid.strip()) for uid in os.getenv("ALLOWED_USER_IDS", "").split(",") if uid.strip()]
+# DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
+# ALLOWED_USER_IDS = [int(uid.strip()) for uid in os.getenv("ALLOWED_USER_IDS", "").split(",") if uid.strip()]
 
 # Assistant Settings
 ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "小橘")
