@@ -59,7 +59,8 @@ class AssistantBot(commands.Bot):
             }
 
             try:
-                result = parse_email_for_events(mock_email, current_dt)
+                existing_events = self.calendar.get_upcoming_events(days=7)
+                result = parse_email_for_events(mock_email, current_dt, existing_events=existing_events)
                 
                 # 记录详细解析结果到本地日志
                 logger.info(f"AI 解析结果 (用户 ID: {message.author.id}): {result}")
