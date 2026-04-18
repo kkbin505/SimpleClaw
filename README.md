@@ -43,4 +43,4 @@ python assistant/main.py
 - `SCOPES`: Google API 的访问权限范围。
 
 ---
-*Created with ❤️ by SimpleClaw Team*
+*Created with ❤️ by kkbin505*
