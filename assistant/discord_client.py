@@ -1,3 +1,4 @@
+import asyncio
 import discord
 import logging
 from discord.ext import commands
@@ -18,11 +19,23 @@ class AssistantBot(commands.Bot):
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
         self.chatbot = Chatbot()
+        self.ready_event = asyncio.Event()
 
     async def on_ready(self):
         logger.info(f"Discord Bot logged in as {self.user} (ID: {self.user.id})")
-        if not ALLOWED_USER_IDS:
-            logger.warning("未配置 ALLOWED_USER_IDS，当前白名单为空。")
+        self.ready_event.set()
+
+    async def send_dm_to_user(self, discord_id, content):
+        """发送私聊消息给指定用户"""
+        try:
+            user = await self.fetch_user(int(discord_id))
+            if user:
+                await user.send(content)
+                logger.info(f"Successfully sent DM to {user.name} (ID: {discord_id})")
+            else:
+                logger.error(f"Could not find user with ID: {discord_id}")
+        except Exception as e:
+            logger.error(f"Failed to send DM to {discord_id}: {e}")
 
     async def on_message(self, message):
         # 不要理会机器人自己的消息

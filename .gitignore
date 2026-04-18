@@ -9,3 +9,4 @@ assistant/__pycache__
 
 assistant/credentials
 assistant/cortanal.png
+.env
