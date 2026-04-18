@@ -10,3 +10,6 @@ assistant/__pycache__
 assistant/credentials
 assistant/cortanal.png
 .env
+assistant/assistant.log
+assistant/error.log
+error.log

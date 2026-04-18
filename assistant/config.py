@@ -45,3 +45,13 @@ ALLOWED_USER_IDS = [int(uid.strip()) for uid in os.getenv("ALLOWED_USER_IDS", ""
 # Assistant Settings
 ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "小橘")
 LOG_FILE = "assistant.log"
+
+# Reminder Configuration
+REMINDER_CACHE_INTERVAL = int(os.getenv("REMINDER_CACHE_INTERVAL", 3600))  # 日历API刷新间隔（秒），默认60分钟
+REMINDER_CHECK_INTERVAL = int(os.getenv("REMINDER_CHECK_INTERVAL", 60))    # 检查缓存间隔（秒），默认1分钟
+REMINDER_THRESHOLDS = [int(x) for x in os.getenv("REMINDER_THRESHOLDS", "60,15").split(",")]  # 提前多少分钟提醒
+REMINDER_MODEL = os.getenv("REMINDER_MODEL", "gpt-4o-mini")  # 提醒消息使用的模型
+QUIET_HOURS_START = int(os.getenv("QUIET_HOURS_START", 21))  # 免打扰开始（21:00）
+QUIET_HOURS_END = int(os.getenv("QUIET_HOURS_END", 7))       # 免打扰结束（07:00）
+MORNING_BRIEFING_HOUR = int(os.getenv("QUIET_HOURS_END", 7))  # 早间汇报时间
+WEATHER_CITY = os.getenv("WEATHER_CITY", "Los Angeles")       # 天气城市
