@@ -153,9 +153,31 @@ class Chatbot:
             finish_reason = response.choices[0].finish_reason
 
             if finish_reason == "stop" or not msg.tool_calls:
-                reply = msg.content or "（工作已完成）"
-                self.conversation.add_message(user_id, "assistant", reply)
-                return reply
+                raw_reply = msg.content or "（工作已完成）"
+                
+                # 尝试解析 JSON 格式以提取对话内容
+                final_reply = raw_reply
+                try:
+                    # 去掉可能存在的 markdown 代码块包裹
+                    clean_content = raw_reply.strip()
+                    if clean_content.startswith("```json"):
+                        clean_content = clean_content.replace("```json", "", 1).rsplit("```", 1)[0].strip()
+                    elif clean_content.startswith("```"):
+                        clean_content = clean_content.replace("```", "", 1).rsplit("```", 1)[0].strip()
+                    
+                    data = json.loads(clean_content)
+                    if isinstance(data, dict):
+                        # 如果是闲聊，提取 reply；如果是无效日程，提取 reason
+                        if "reply" in data:
+                            final_reply = data["reply"]
+                        elif "reason" in data:
+                            final_reply = data["reason"]
+                except (json.JSONDecodeError, Exception):
+                    # 如果不是 JSON 或者解析失败，直接使用原始文本
+                    final_reply = raw_reply
+
+                self.conversation.add_message(user_id, "assistant", final_reply)
+                return final_reply
 
             # 处理工具调用
             messages.append(msg) # 直接把消息对象添加进去供后续轮次参考
