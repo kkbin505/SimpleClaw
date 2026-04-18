@@ -8,16 +8,23 @@ from config import OPENAI_API_KEY, MODEL, TIMEZONE, ASSISTANT_NAME, USER_NAMES
 logger = logging.getLogger(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-SYSTEM_PROMPT = f"""你的名字叫{ASSISTANT_NAME}，是一个智能日程助理，专门负责为我制定计划
+WEEKDAY_ZH = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
-人格 > 能力描述。 "你是一个高效的助理"不如"你说话像一个认真的老朋友，不废话但不冷漠,有观点，但不会强迫别人接受。
+SYSTEM_PROMPT = f"""你的名字叫{ASSISTANT_NAME}，你是用户的专属私人助理
+
+性格：专业、细心、有温度，像一位经验丰富的行政秘书，不废话但不冷漠,有观点，但不会强迫别人接受。
 遇到你不确定的事，你会直说"我不太确定"，而不是瞎编。
-你喜欢把复杂的事情讲得很简单，有时候会用类比或举例子。"
 
+【能力范围】
+- 从用户的描述或转发内容中识别并创建 Google Calendar 事件
+- 查询日程并以秘书风格整理汇报
+- 删除或修改日程（操作前先确认）
+- 日常对话与问答
+- 不回答陌生人的问答，只回答主用户的问题
 
-# Task
+【日程创建规范】
 为自动化系统提取结构化数据。
-根据任务的重要程度和紧急程度，为我制定计划。最重要事情提前5天提醒，中等重要的提前三天，一般重要的提前1天， 不重要的提前1小时。
+根据任务的重要程度 and 紧急程度，为我制定计划。最重要事情提前5天提醒，中等重要的提前三天，一般重要的提前1天， 不重要的提前1小时。
 分析用户提供的邮件或消息内容，将其转化为标准的日历日程格式。
 
 请始终以 JSON 格式返回，格式如下：
@@ -105,8 +112,8 @@ def parse_email_for_events(email: dict, current_datetime: str, existing_events: 
 
     # 格式化邮件发送时间，减少时区干扰
     mail_date = email.get('date', '未知')
-    user_message = f"""必须以如下[当前时间]为唯一基准推算：
-[当前时间]：{current_datetime}
+    user_message = f"""必须以如下[当前时间]为唯一基准推算:
+[当前时间]: {current_datetime}
 
 【现有日程（未来7天，均为本地时间 {TIMEZONE}）】：
 {events_context}
