@@ -13,7 +13,22 @@ MODEL = "gpt-4o-mini"
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/documents.readonly",
 ]
+
+# Identification and Filtering
+# USER_MAP format in .env: Jack:ID1,Zhen:ID2
+_user_map_str = os.getenv("USER_MAP", "Jack:YOUR_DISCORD_ID,Zhen:YOUR_DISCORD_ID")
+USER_MAP = {}
+if _user_map_str:
+    for item in _user_map_str.split(","):
+        if ":" in item:
+            name, d_id = item.split(":", 1)
+            USER_MAP[name.strip()] = d_id.strip()
+
+USER_NAMES = list(USER_MAP.keys())
+DOC_TITLE_KEYWORDS = [kw.strip() for kw in os.getenv("DOC_TITLE_KEYWORDS", "Minutes,Meeting,Weekly,会议纪要").split(",")]
 
 # CREDENTIALS_FILE set by user to credentials\credentials.json, using forward slash for cross-platform safety
 CREDENTIALS_FILE = "credentials/credentials.json"

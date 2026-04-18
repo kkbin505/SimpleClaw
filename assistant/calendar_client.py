@@ -14,9 +14,15 @@ class CalendarClient:
         """检查指定时间点是否已存在同名任务"""
         # start_dt 格式通常是 2024-04-15T14:00:00
         # 我们查询该时间点前后 1 分钟内的事件
+        # 确保 timeMin 是合法的 RFC 3339 格式
+        # 如果已经有时区信息（Z 或 +/-），则不重复添加
+        time_min = start_dt
+        if "Z" not in start_dt and "+" not in start_dt and ("-" not in start_dt[10:]):
+            time_min += "Z"
+
         events_result = self.service.events().list(
             calendarId=CALENDAR_ID,
-            timeMin=start_dt + "Z" if "Z" not in start_dt else start_dt,
+            timeMin=time_min,
             maxResults=10,
             singleEvents=True,
             orderBy='startTime'

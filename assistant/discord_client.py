@@ -1,3 +1,4 @@
+import asyncio
 import discord
 import logging
 from discord.ext import commands
@@ -18,11 +19,23 @@ class AssistantBot(commands.Bot):
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
         self.calendar = CalendarClient()
+        self.ready_event = asyncio.Event()
 
     async def on_ready(self):
         logger.info(f"Discord Bot logged in as {self.user} (ID: {self.user.id})")
-        if not ALLOWED_USER_IDS:
-            logger.warning("未配置 ALLOWED_USER_IDS，当前白名单为空。")
+        self.ready_event.set()
+
+    async def send_dm_to_user(self, discord_id, content):
+        """发送私聊消息给指定用户"""
+        try:
+            user = await self.fetch_user(int(discord_id))
+            if user:
+                await user.send(content)
+                logger.info(f"Successfully sent DM to {user.name} (ID: {discord_id})")
+            else:
+                logger.error(f"Could not find user with ID: {discord_id}")
+        except Exception as e:
+            logger.error(f"Failed to send DM to {discord_id}: {e}")
 
     async def on_message(self, message):
         # 不要理会机器人自己的消息
@@ -74,8 +87,17 @@ class AssistantBot(commands.Bot):
                         link = self.calendar.create_event(event_data)
                         await message.reply(f"✅ 已为你安排日程：\n**{event_data['title']}**\n⏰ {event_data['start_datetime']}\n🔗 [查看日历]({link})")
                 else:
-                    # 仅在日志输出，不发回 Discord
-                    logger.info(f"好的。原因: {result.get('reason', '无')}")
+                    if result.get('is_casual'):
+                        # 闲聊 → 用 AI 生成的自然回复
+                        reply_text = result.get('reply', '嗯，收到了。')
+                        logger.info(f"闲聊回复: {reply_text}")
+                        await message.reply(reply_text)
+                    else:
+                        reason = result.get('reason', '')
+                        logger.info(f"好的。原因: {reason}")
+                        if reason:
+                            # 冲突或重复 → 告知用户
+                            await message.reply(f"⚠️ 无法创建日程：{reason}")
             except Exception as e:
                 logger.error(f"Discord 任务处理出错: {e}", exc_info=True)
                 await message.reply("抱歉，处理该任务时发生错误，详情请查看本地日志。")
