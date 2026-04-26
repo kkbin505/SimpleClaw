@@ -21,11 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 class PersonalAssistant:
-    def __init__(self, discord_bot=None):
+    def __init__(self, discord_bot=None, telegram_bot=None):
         self.gmail = GmailClient()
         self.calendar = CalendarClient()
         self.docs = GoogleDocsClient()
         self.discord_bot = discord_bot
+        self.telegram_bot = telegram_bot
         self.processed_docs_file = "credentials/processed_docs.json"
         logger.info("Personal Assistant initialized.")
 

@@ -1,8 +1,9 @@
 import asyncio
 import logging
 from assistant import PersonalAssistant
-from config import POLL_INTERVAL_SECONDS, DISCORD_TOKEN
+from config import POLL_INTERVAL_SECONDS, DISCORD_TOKEN, TELEGRAM_TOKEN
 from discord_client import AssistantBot
+from telegram_client import AssistantTelegramBot
 from scheduler import ScheduleReminder
 
 logger = logging.getLogger(__name__)
@@ -21,25 +22,35 @@ async def gmail_polling_task(assistant):
             logger.error(f"Gmail Polling Error: {e}")
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
-async def schedule_reminder_task(assistant):
+async def schedule_reminder_task(assistant, discord_bot=None, telegram_bot=None):
     """异步执行日程提醒调度任务"""
-    if assistant.discord_bot:
+    if discord_bot:
         logger.info("Waiting for Discord Bot to be ready for Scheduler...")
-        await assistant.discord_bot.ready_event.wait()
+        await discord_bot.ready_event.wait()
+    
+    if telegram_bot:
+        logger.info("Waiting for Telegram Bot to be ready for Scheduler...")
+        await telegram_bot.ready_event.wait()
 
     reminder = ScheduleReminder(
         calendar_client=assistant.calendar,
-        discord_bot=assistant.discord_bot,
+        discord_bot=discord_bot,
+        telegram_bot=telegram_bot,
     )
     await reminder.run()
 
 async def main_async():
     # 先初始化 Bot（如果需要的话，也可以先初始化 Assistant）
-    bot = None
+    discord_bot = None
     if DISCORD_TOKEN:
-        bot = AssistantBot()
+        discord_bot = AssistantBot()
     
-    assistant = PersonalAssistant(discord_bot=bot)
+    telegram_bot = None
+    if TELEGRAM_TOKEN:
+        telegram_bot = AssistantTelegramBot()
+        await telegram_bot.initialize(TELEGRAM_TOKEN)
+    
+    assistant = PersonalAssistant(discord_bot=discord_bot, telegram_bot=telegram_bot)
     
     # 定义任务列表
     tasks = [
@@ -47,12 +58,21 @@ async def main_async():
     ]
 
     # 如果配置了 Discord Bot，启动提醒调度器和 Bot
-    if bot:
+    if discord_bot:
         logger.info("Starting Discord Bot...")
-        tasks.append(asyncio.create_task(bot.start(DISCORD_TOKEN)))
-        tasks.append(asyncio.create_task(schedule_reminder_task(assistant)))
+        tasks.append(asyncio.create_task(discord_bot.start(DISCORD_TOKEN)))
+        tasks.append(asyncio.create_task(schedule_reminder_task(assistant, discord_bot, telegram_bot)))
+    elif telegram_bot:
+        # 如果只有 Telegram Bot，也需要启动提醒调度器
+        logger.info("Discord Bot not configured, starting Telegram-only scheduler...")
+        tasks.append(asyncio.create_task(schedule_reminder_task(assistant, None, telegram_bot)))
     else:
-        logger.warning("DISCORD_TOKEN not found in .env, running Gmail assistant only.")
+        logger.warning("Neither DISCORD_TOKEN nor TELEGRAM_TOKEN found in .env, running Gmail assistant only.")
+
+    # 如果配置了 Telegram Bot，启动它
+    if telegram_bot:
+        logger.info("Starting Telegram Bot...")
+        tasks.append(asyncio.create_task(telegram_bot.start()))
 
     # 并行等待所有任务
     await asyncio.gather(*tasks)

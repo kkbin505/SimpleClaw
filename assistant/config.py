@@ -42,6 +42,10 @@ CALENDAR_ID = "primary"
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 ALLOWED_USER_IDS = [int(uid.strip()) for uid in os.getenv("ALLOWED_USER_IDS", "").split(",") if uid.strip()]
 
+# Telegram Configuration
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_ALLOWED_USER_IDS = [int(uid.strip()) for uid in os.getenv("TELEGRAM_ALLOWED_USER_IDS", "").split(",") if uid.strip()]
+
 # Assistant Settings
 ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "小橘")
 LOG_FILE = "assistant.log"

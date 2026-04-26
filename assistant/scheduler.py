@@ -18,7 +18,7 @@ from openai import OpenAI
 
 from calendar_client import CalendarClient
 from config import (
-    OPENAI_API_KEY, TIMEZONE, ALLOWED_USER_IDS, ASSISTANT_NAME,
+    OPENAI_API_KEY, TIMEZONE, ALLOWED_USER_IDS, TELEGRAM_ALLOWED_USER_IDS, ASSISTANT_NAME,
     REMINDER_CACHE_INTERVAL, REMINDER_CHECK_INTERVAL, REMINDER_THRESHOLDS,
     REMINDER_MODEL, QUIET_HOURS_START, QUIET_HOURS_END, MORNING_BRIEFING_HOUR,
     WEATHER_CITY,
@@ -29,9 +29,10 @@ ai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 class ScheduleReminder:
-    def __init__(self, calendar_client: CalendarClient, discord_bot):
+    def __init__(self, calendar_client: CalendarClient, discord_bot=None, telegram_bot=None):
         self.calendar = calendar_client
-        self.bot = discord_bot
+        self.discord_bot = discord_bot
+        self.telegram_bot = telegram_bot
         self.thresholds = sorted(REMINDER_THRESHOLDS, reverse=True)  # [60, 15]
         self.tz = ZoneInfo(TIMEZONE)
 
@@ -328,15 +329,26 @@ class ScheduleReminder:
     # 工具方法
     # ------------------------------------------------------------------
     async def _broadcast_dm(self, content: str):
-        """给所有授权用户发送 DM"""
-        if not self.bot:
-            logger.warning("No Discord bot available, skipping DM")
-            return
-        for discord_id in ALLOWED_USER_IDS:
-            try:
-                await self.bot.send_dm_to_user(discord_id, content)
-            except Exception as e:
-                logger.error(f"Failed to DM user {discord_id}: {e}")
+        """给所有授权用户发送 DM（Discord 和 Telegram）"""
+        # 发送 Discord DM
+        if self.discord_bot:
+            for discord_id in ALLOWED_USER_IDS:
+                try:
+                    await self.discord_bot.send_dm_to_user(discord_id, content)
+                except Exception as e:
+                    logger.error(f"Failed to DM Discord user {discord_id}: {e}")
+        else:
+            logger.debug("Discord bot not available, skipping Discord DM")
+        
+        # 发送 Telegram 消息
+        if self.telegram_bot:
+            for telegram_id in TELEGRAM_ALLOWED_USER_IDS:
+                try:
+                    await self.telegram_bot.send_message_to_user(telegram_id, content)
+                except Exception as e:
+                    logger.error(f"Failed to send Telegram message to user {telegram_id}: {e}")
+        else:
+            logger.debug("Telegram bot not available, skipping Telegram message")
 
     @staticmethod
     def _humanize_minutes(minutes: int) -> str:
