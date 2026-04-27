@@ -59,3 +59,7 @@ QUIET_HOURS_START = int(os.getenv("QUIET_HOURS_START", 21))  # 免打扰开始�
 QUIET_HOURS_END = int(os.getenv("QUIET_HOURS_END", 7))       # 免打扰结束（07:00）
 MORNING_BRIEFING_HOUR = int(os.getenv("QUIET_HOURS_END", 7))  # 早间汇报时间
 WEATHER_CITY = os.getenv("WEATHER_CITY", "Los Angeles")       # 天气城市
+
+# Dreaming feature configuration
+DREAMING_ENABLED = os.getenv("DREAMING_ENABLED", "false").lower() == "true"
+DREAM_INTERVAL_HOURS = int(os.getenv("DREAM_INTERVAL_HOURS", 4))

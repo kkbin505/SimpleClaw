@@ -5,7 +5,9 @@ from gmail_client import GmailClient
 from calendar_client import CalendarClient
 from ai_parser import parse_email_for_events, parse_minutes_for_tasks
 from docs_client import GoogleDocsClient
-from config import TIMEZONE, LOG_FILE, DOC_TITLE_KEYWORDS, USER_MAP
+from config import TIMEZONE, LOG_FILE, DOC_TITLE_KEYWORDS, USER_MAP, DREAMING_ENABLED
+from dreaming import DreamGenerator
+from chatbot import Chatbot
 import json
 import os
 
@@ -28,6 +30,13 @@ class PersonalAssistant:
         self.discord_bot = discord_bot
         self.telegram_bot = telegram_bot
         self.processed_docs_file = "credentials/processed_docs.json"
+        
+        # 初始化梦幻思考器
+        self.dream_generator = DreamGenerator() if DREAMING_ENABLED else None
+        
+        # 初始化聊天机器人并传入梦幻思考器
+        self.chatbot = Chatbot(dream_generator=self.dream_generator)
+        
         logger.info("Personal Assistant initialized.")
 
     async def run_once(self):

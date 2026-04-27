@@ -9,16 +9,19 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import os
 
-from chatbot import Chatbot
-
 logger = logging.getLogger(__name__)
 
 class AssistantBot(commands.Bot):
-    def __init__(self):
+    def __init__(self, chatbot=None):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
-        self.chatbot = Chatbot()
+        # 允许传入外部的chatbot实例，否则创建新的
+        if chatbot:
+            self.chatbot = chatbot
+        else:
+            from chatbot import Chatbot
+            self.chatbot = Chatbot()
         self.ready_event = asyncio.Event()
 
     async def on_ready(self):

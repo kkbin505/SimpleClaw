@@ -21,8 +21,9 @@ from config import (
     OPENAI_API_KEY, TIMEZONE, ALLOWED_USER_IDS, TELEGRAM_ALLOWED_USER_IDS, ASSISTANT_NAME,
     REMINDER_CACHE_INTERVAL, REMINDER_CHECK_INTERVAL, REMINDER_THRESHOLDS,
     REMINDER_MODEL, QUIET_HOURS_START, QUIET_HOURS_END, MORNING_BRIEFING_HOUR,
-    WEATHER_CITY,
+    WEATHER_CITY, DREAMING_ENABLED,
 )
+from dreaming import DreamGenerator
 
 logger = logging.getLogger(__name__)
 ai_client = OpenAI(api_key=OPENAI_API_KEY)
@@ -45,6 +46,9 @@ class ScheduleReminder:
 
         # 早间汇报：记录上次推送日期，避免同一天重复推送
         self._last_briefing_date: str | None = None
+        
+        # 梦幻思考器
+        self.dream_generator = DreamGenerator() if DREAMING_ENABLED else None
 
     # ------------------------------------------------------------------
     # 主循环入口
@@ -64,7 +68,7 @@ class ScheduleReminder:
             await asyncio.sleep(REMINDER_CHECK_INTERVAL)
 
     async def _tick(self):
-        """单次 tick：刷新缓存 → 检查早间汇报 → 检查事件提醒"""
+        """单次 tick：刷新缓存 → 检查早间汇报 → 检查梦 → 检查事件提醒"""
         now = datetime.now(self.tz)
 
         # 1. 按需刷新缓存
@@ -73,11 +77,15 @@ class ScheduleReminder:
         # 2. 早间汇报（7:00 AM，不受免打扰限制）
         await self._check_morning_briefing(now)
 
-        # 3. 免打扰时段内不发事件提醒
+        # 3. 检查梦（梦不受免打扰限制，但间隔由配置决定）
+        if DREAMING_ENABLED:
+            await self._check_dreams()
+
+        # 4. 免打扰时段内不发事件提醒
         if self._is_quiet_hour(now):
             return
 
-        # 4. 检查事件提醒
+        # 5. 检查事件提醒
         await self._check_event_reminders(now)
 
     # ------------------------------------------------------------------
@@ -349,6 +357,58 @@ class ScheduleReminder:
                     logger.error(f"Failed to send Telegram message to user {telegram_id}: {e}")
         else:
             logger.debug("Telegram bot not available, skipping Telegram message")
+
+    # ------------------------------------------------------------------
+    # 梦幻思考
+    # ------------------------------------------------------------------
+    async def _check_dreams(self):
+        """检查并生成梦（对所有授权用户）"""
+        if not self.dream_generator:
+            return
+        
+        # 检查所有授权用户
+        all_user_ids = set(ALLOWED_USER_IDS + TELEGRAM_ALLOWED_USER_IDS)
+        
+        for user_id in all_user_ids:
+            user_id_str = str(user_id)
+            
+            if self.dream_generator.should_generate_dream(user_id_str):
+                try:
+                    dream_content = await self.dream_generator.generate_dream(user_id_str)
+                    if dream_content:
+                        # 格式化梦的消息
+                        msg = self._format_dream_message(dream_content)
+                        await self._broadcast_dm_to_user(user_id_str, msg)
+                        logger.info(f"Dream sent to user {user_id_str}")
+                except Exception as e:
+                    logger.error(f"Failed to generate dream for user {user_id_str}: {e}", exc_info=True)
+
+    def _format_dream_message(self, dream_content: str) -> str:
+        """格式化梦的消息"""
+        return f"""💭 **{ASSISTANT_NAME}的梦幻思考**
+
+{dream_content}
+
+---
+*这是基于你最近的交互模式的深思分析。希望能帮助你更好地组织工作和生活。*"""
+
+    async def _broadcast_dm_to_user(self, user_id: str, content: str):
+        """发送DM给特定用户（支持Discord和Telegram）"""
+        try:
+            # 尝试发送给Discord用户
+            if self.discord_bot and int(user_id) in ALLOWED_USER_IDS:
+                await self.discord_bot.send_dm_to_user(user_id, content)
+                return
+        except Exception as e:
+            logger.debug(f"Failed to send Discord DM to {user_id}: {e}")
+        
+        try:
+            # 尝试发送给Telegram用户
+            if self.telegram_bot and int(user_id) in TELEGRAM_ALLOWED_USER_IDS:
+                await self.telegram_bot.send_message_to_user(int(user_id), content)
+                return
+        except Exception as e:
+            logger.debug(f"Failed to send Telegram message to {user_id}: {e}")
 
     @staticmethod
     def _humanize_minutes(minutes: int) -> str:

@@ -2,7 +2,6 @@ import asyncio
 import logging
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
-from chatbot import Chatbot
 from config import TIMEZONE, TELEGRAM_ALLOWED_USER_IDS
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -11,8 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 class AssistantTelegramBot:
-    def __init__(self):
-        self.chatbot = Chatbot()
+    def __init__(self, chatbot=None):
+        # 允许传入外部的chatbot实例，否则创建新的
+        if chatbot:
+            self.chatbot = chatbot
+        else:
+            from chatbot import Chatbot
+            self.chatbot = Chatbot()
         self.ready_event = asyncio.Event()
         self.application = None
 

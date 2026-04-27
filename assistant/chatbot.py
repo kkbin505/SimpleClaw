@@ -3,9 +3,10 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from openai import OpenAI
-from config import OPENAI_API_KEY, MODEL, TIMEZONE
+from config import OPENAI_API_KEY, MODEL, TIMEZONE, DREAMING_ENABLED
 from ai_parser import SYSTEM_PROMPT, WEEKDAY_ZH
 from calendar_client import CalendarClient
+from dreaming import DreamGenerator
 
 logger = logging.getLogger(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -109,9 +110,10 @@ class ToolExecutor:
             return {"error": f"Tool {name} not found"}
 
 class Chatbot:
-    def __init__(self):
+    def __init__(self, dream_generator: DreamGenerator | None = None):
         self.conversation = ConversationManager(max_history=10)
         self.executor = ToolExecutor()
+        self.dream_generator = dream_generator or (DreamGenerator() if DREAMING_ENABLED else None)
 
     def _build_time_context(self) -> str:
         """生成带中文星期的当前时间，帮助 GPT 处理相对时间"""
@@ -129,6 +131,12 @@ class Chatbot:
         )
 
     def chat(self, user_id: str, user_message: str) -> str:
+        # 检查特殊命令
+        if user_message.strip().lower() in ["/dream", "/梦", "梦"]:
+            return self._handle_dream_command(user_id, "latest")
+        elif user_message.strip().lower() in ["/dreams", "/梦历史", "梦历史"]:
+            return self._handle_dream_command(user_id, "history")
+        
         time_context = self._build_time_context()
         self.conversation.add_message(user_id, "user", user_message)
 
@@ -177,6 +185,15 @@ class Chatbot:
                     final_reply = raw_reply
 
                 self.conversation.add_message(user_id, "assistant", final_reply)
+                
+                # 追踪交互
+                if self.dream_generator:
+                    self.dream_generator.add_interaction(
+                        user_id,
+                        "chat",
+                        f"User: {user_message[:100]}... | Assistant: {final_reply[:100]}..."
+                    )
+                
                 return final_reply
 
             # 处理工具调用
@@ -192,6 +209,14 @@ class Chatbot:
                 logger.info(f"Tool: {tool_name} | Args: {args}")
                 result = self.executor.execute(tool_name, args)
 
+                # 追踪工具调用交互
+                if self.dream_generator and tool_name in ["list_upcoming_events", "create_event", "delete_event"]:
+                    self.dream_generator.add_interaction(
+                        user_id,
+                        f"calendar_{tool_name}",
+                        json.dumps(args, ensure_ascii=False)[:100]
+                    )
+
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call.id,
@@ -199,3 +224,27 @@ class Chatbot:
                 })
 
         return "抱歉，处理时出了点问题，请稍后重试。"
+
+    def _handle_dream_command(self, user_id: str, command_type: str) -> str:
+        """处理梦相关命令"""
+        if not self.dream_generator:
+            return "抱歉，梦幻思考功能未启用。"
+        
+        if command_type == "latest":
+            dream = self.dream_generator.get_latest_dream(user_id)
+            if not dream:
+                return "你还没有梦。多和我交互，我就会开始思考你的模式并生成梦。"
+            return f"💭 **你最近的梦**\n\n{dream}"
+        
+        elif command_type == "history":
+            history = self.dream_generator.get_dream_history(user_id, limit=5)
+            if not history:
+                return "你还没有梦的历史。多和我交互，我就会开始思考你的模式并生成梦。"
+            
+            result = "📚 **你的梦幻历史**\n\n"
+            for i, dream_record in enumerate(history, 1):
+                ts = dream_record["timestamp"]
+                result += f"**梦 #{i}** ({ts})\n{dream_record['content']}\n\n"
+            return result
+        
+        return "未知的梦命令。"
