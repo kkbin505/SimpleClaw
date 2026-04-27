@@ -130,6 +130,61 @@ class Chatbot:
             f"{now.strftime('%H:%M')}（{time_of_day}）"
         )
 
+    def _extract_day_offset(self, user_message: str) -> int | None:
+        """从用户原话中提取相对日期偏移。"""
+        text = user_message or ""
+        if "今天" in text or "今日" in text:
+            return 0
+        if "明天" in text or "明日" in text:
+            return 1
+        if "后天" in text:
+            return 2
+        return None
+
+    def _shift_iso_to_date(self, iso_str: str, target_date) -> str:
+        """保留原有时间部分，仅替换日期。"""
+        dt = datetime.fromisoformat(iso_str)
+        shifted = dt.replace(year=target_date.year, month=target_date.month, day=target_date.day)
+        return shifted.isoformat()
+
+    def _normalize_create_event_args(self, user_message: str, args: dict) -> dict:
+        """根据用户显式日期词，校正 create_event 的日期，避免今天被漂移到明天。"""
+        if not isinstance(args, dict):
+            return args
+
+        start_dt = args.get("start_datetime")
+        end_dt = args.get("end_datetime")
+        if not start_dt or not end_dt:
+            return args
+
+        day_offset = self._extract_day_offset(user_message)
+        if day_offset is None:
+            return args
+
+        try:
+            now_local = datetime.now(ZoneInfo(TIMEZONE))
+            target_date = now_local.date().fromordinal(now_local.date().toordinal() + day_offset)
+            fixed_args = dict(args)
+            fixed_args["start_datetime"] = self._shift_iso_to_date(start_dt, target_date)
+            fixed_args["end_datetime"] = self._shift_iso_to_date(end_dt, target_date)
+
+            if (
+                fixed_args["start_datetime"] != start_dt
+                or fixed_args["end_datetime"] != end_dt
+            ):
+                logger.info(
+                    "Adjusted create_event date by user intent: %s -> %s, %s -> %s",
+                    start_dt,
+                    fixed_args["start_datetime"],
+                    end_dt,
+                    fixed_args["end_datetime"],
+                )
+
+            return fixed_args
+        except Exception as e:
+            logger.warning(f"Failed to normalize create_event args: {e}")
+            return args
+
     def chat(self, user_id: str, user_message: str) -> str:
         # 检查特殊命令
         if user_message.strip().lower() in ["/dream", "/梦", "梦"]:
@@ -205,6 +260,9 @@ class Chatbot:
                     args = json.loads(tool_call.function.arguments)
                 except json.JSONDecodeError:
                     args = {}
+
+                if tool_name == "create_event":
+                    args = self._normalize_create_event_args(user_message, args)
 
                 logger.info(f"Tool: {tool_name} | Args: {args}")
                 result = self.executor.execute(tool_name, args)

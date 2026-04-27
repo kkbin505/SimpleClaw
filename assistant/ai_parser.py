@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from openai import OpenAI
-from config import OPENAI_API_KEY, MODEL, TIMEZONE, ASSISTANT_NAME, USER_NAMES
+from config import OPENAI_API_KEY, SCHEDULING_MODEL, TIMEZONE, ASSISTANT_NAME, USER_NAMES
 
 logger = logging.getLogger(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -101,7 +101,7 @@ def _format_event_time(iso_str: str) -> str:
         return iso_str
 
 
-def parse_email_for_events(email: dict, current_datetime: str, existing_events: list = None) -> dict:
+def parse_email_for_events(email: dict, current_datetime: str, existing_events: list | None = None) -> dict:
     # 格式化现有日程（已转换至本地时间）
     events_context = "无"
     if existing_events:
@@ -131,7 +131,7 @@ def parse_email_for_events(email: dict, current_datetime: str, existing_events: 
 请分析并决定是否添加日程。直接输出 JSON，不要有任何其他文字。"""
 
     response = client.chat.completions.create(
-        model=MODEL,
+        model=SCHEDULING_MODEL,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user",   "content": user_message},
@@ -140,12 +140,12 @@ def parse_email_for_events(email: dict, current_datetime: str, existing_events: 
         temperature=0,
     )
 
-    content = response.choices[0].message.content
+    content = response.choices[0].message.content or "{}"
     logger.debug(f"AI response: {content}")
     return json.loads(content)
 
 
-def parse_minutes_for_tasks(content: str, current_datetime: str, existing_events: list = None) -> dict:
+def parse_minutes_for_tasks(content: str, current_datetime: str, existing_events: list | None = None) -> dict:
     """
     专门解析会议纪要内容，提取分配给指定用户的任务。
     """
@@ -193,7 +193,7 @@ JSON 格式要求：
     user_message = f"请分析以下会议纪要内容：\n\n{content}\n\n直接输出 JSON。"
 
     response = client.chat.completions.create(
-        model=MODEL,
+        model=SCHEDULING_MODEL,
         messages=[
             {"role": "system", "content": minutes_system_prompt},
             {"role": "user",   "content": user_message},
@@ -202,6 +202,6 @@ JSON 格式要求：
         temperature=0,
     )
 
-    result_content = response.choices[0].message.content
+    result_content = response.choices[0].message.content or "{}"
     logger.debug(f"AI Minutes Parsing Result: {result_content}")
     return json.loads(result_content)

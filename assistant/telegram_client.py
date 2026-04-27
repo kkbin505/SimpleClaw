@@ -83,15 +83,9 @@ class AssistantTelegramBot:
             f"(ID: {user_id}): {message.text}"
         )
 
-        # 显示"正在输入"状态
         try:
-            await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
-        except Exception as e:
-            logger.warning(f"Failed to send typing action: {e}")
-
-        try:
-            # 使用 Chatbot 处理对话（包含日程查询、创建、日常闲聊等）
-            reply = self.chatbot.chat(str(user_id), message.text)
+            # 直接生成回复，保持逻辑简单稳定。
+            reply = await asyncio.to_thread(self.chatbot.chat, str(user_id), message.text)
             
             # 处理消息长度限制（Telegram 单条消息最大 4096 字符）
             await self._send_message(message.chat_id, reply, context)
@@ -101,11 +95,20 @@ class AssistantTelegramBot:
 
     async def _send_message(self, chat_id: int, text: str, context: ContextTypes.DEFAULT_TYPE):
         """发送消息，自动分段处理长消息"""
+        if text is None:
+            text = "（我这边处理完成了，但暂时没有可显示的文本结果。）"
+        elif not isinstance(text, str):
+            text = str(text)
+
         max_length = 4096
         if len(text) <= max_length:
+            logger.info(f"Telegram sending reply to chat {chat_id}, length={len(text)}")
             await context.bot.send_message(chat_id=chat_id, text=text)
         else:
             # 分段发送
+            logger.info(
+                f"Telegram sending long reply to chat {chat_id}, length={len(text)}, chunks={(len(text) + max_length - 1) // max_length}"
+            )
             for i in range(0, len(text), max_length):
                 chunk = text[i : i + max_length]
                 await context.bot.send_message(chat_id=chat_id, text=chunk)

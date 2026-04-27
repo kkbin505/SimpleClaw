@@ -37,9 +37,22 @@ class DreamGenerator:
         
         # 追踪每个用户的交互历史：{user_id: list of interactions}
         self._interaction_histories: dict = {}
+
+        # 确保文件存在，避免“功能开启但文件未生成”的误解。
+        self._ensure_dreams_file_exists()
         
         # 加载现有的梦
         self._load_dreams()
+
+    def _ensure_dreams_file_exists(self):
+        """确保梦文件存在；不存在时创建空 JSON。"""
+        try:
+            if not self.dreams_file.exists():
+                with open(self.dreams_file, "w", encoding="utf-8") as f:
+                    json.dump({}, f, ensure_ascii=False, indent=2)
+                logger.info(f"Created dreams file: {self.dreams_file}")
+        except Exception as e:
+            logger.error(f"Failed to create dreams file: {e}", exc_info=True)
 
     def _load_dreams(self):
         """从文件加载已存储的梦"""
@@ -152,7 +165,7 @@ class DreamGenerator:
 
         try:
             response = ai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5.4-mini",
                 messages=[
                     {"role": "system", "content": f"你是{ASSISTANT_NAME}，一个深思熟虑的私人助理。"},
                     {"role": "user", "content": prompt},
