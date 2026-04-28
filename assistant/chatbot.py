@@ -115,6 +115,70 @@ class Chatbot:
         self.executor = ToolExecutor()
         self.dream_generator = dream_generator or (DreamGenerator() if DREAMING_ENABLED else None)
 
+    def _format_iso_datetime(self, iso_str: str) -> str:
+        """把 ISO 时间转换成更适合直接发给用户的本地时间文本。"""
+        if not iso_str:
+            return ""
+
+        try:
+            dt = datetime.fromisoformat(iso_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=ZoneInfo(TIMEZONE))
+
+            dt_local = dt.astimezone(ZoneInfo(TIMEZONE))
+            weekday = WEEKDAY_ZH[dt_local.weekday()]
+            return dt_local.strftime(f"%Y-%m-%d {weekday} %H:%M")
+        except Exception:
+            return iso_str
+
+    def _format_structured_reply(self, data: dict, fallback: str) -> str:
+        """把 JSON 结构化结果转成用户可读文本。"""
+        if not isinstance(data, dict):
+            return fallback
+
+        reply = data.get("reply")
+        if isinstance(reply, str) and reply.strip():
+            return reply
+
+        reason = data.get("reason")
+        if isinstance(reason, str) and reason.strip():
+            return reason
+
+        if data.get("has_event"):
+            events = data.get("events") or []
+            if isinstance(events, list) and events:
+                lines = []
+                for event in events:
+                    if not isinstance(event, dict):
+                        continue
+
+                    title = event.get("title") or "未命名事项"
+                    start_text = self._format_iso_datetime(event.get("start_datetime", ""))
+                    end_text = self._format_iso_datetime(event.get("end_datetime", ""))
+                    location = event.get("location", "")
+
+                    item = f"我记下了：{title}"
+                    if start_text and end_text:
+                        item += f"，时间是 {start_text} - {end_text}"
+                    elif start_text:
+                        item += f"，时间是 {start_text}"
+
+                    if location:
+                        item += f"，地点：{location}"
+
+                    lines.append(item)
+
+                if lines:
+                    if len(lines) == 1:
+                        return lines[0]
+                    return "我记下了这些事项：\n" + "\n".join(
+                        f"{index + 1}. {line}" for index, line in enumerate(lines)
+                    )
+
+            return "我已经帮你记下这件事了。"
+
+        return fallback
+
     def _build_time_context(self) -> str:
         """生成带中文星期的当前时间，帮助 GPT 处理相对时间"""
         now = datetime.now(ZoneInfo(TIMEZONE))
@@ -230,11 +294,8 @@ class Chatbot:
                     
                     data = json.loads(clean_content)
                     if isinstance(data, dict):
-                        # 如果是闲聊，提取 reply；如果是无效日程，提取 reason
-                        if "reply" in data:
-                            final_reply = data["reply"]
-                        elif "reason" in data:
-                            final_reply = data["reason"]
+                                            # 将结构化 JSON 翻译成自然语言，避免把原对象直接发给用户
+                                            final_reply = self._format_structured_reply(data, raw_reply)
                 except (json.JSONDecodeError, Exception):
                     # 如果不是 JSON 或者解析失败，直接使用原始文本
                     final_reply = raw_reply

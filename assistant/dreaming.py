@@ -171,7 +171,7 @@ class DreamGenerator:
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.8,
-                max_tokens=500,
+                max_completion_tokens=500,
             )
             
             dream_content = response.choices[0].message.content
