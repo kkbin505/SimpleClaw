@@ -2,9 +2,19 @@
 
 SimpleClaw 是一个基于 AI 的智能日程助理（代号：**小橘**），能够自动读取 Gmail 邮件、解析日程信息（支持正文分析及 `.ics` 附件解析），并自动同步到 Google Calendar。
 
+## English Update (2026-04-27)
+
+Today's optimizations completed:
+- Faster model routing: daily chat and reminders now default to `gpt-5.4-nano`, while critical scheduling parsing uses `gpt-5.4-mini`.
+- Better date safety for event creation: when users explicitly say 今天/明天/后天, the create-event date is normalized to the intended day.
+- Shared calendar visibility: event queries now support multiple calendars and auto-discover selected accessible shared calendars.
+- Clearer calendar diagnostics: startup logs now show query mode, query calendar IDs, and write calendar ID.
+- Simpler Telegram flow: removed typing-indicator loop and kept direct reply flow for stability.
+- Dream file reliability: `assistant/credentials/dreams.json` is created automatically during initialization.
+
 ## ✨ 功能特性
 
-- **智能解析**：基于 OpenAI GPT-4o-mini，精准提取邮件及 **Google Docs 会议纪要**中的时间、地点及任务。
+- **智能解析**：基于 OpenAI（默认 `gpt-5.4-nano` + 关键解析 `gpt-5.4-mini`），精准提取邮件及 **Google Docs 会议纪要**中的时间、地点及任务。
 - **会议纪要自动化**：自动识别分配给特定用户（如 Jack, Zhen）的任务并同步至日历。
 - **多平台支持**：
   - **Discord 推送**：支持精准的 Discord 私聊提醒及聊天交互。
@@ -48,7 +58,7 @@ conda activate claw
 **其他**：
 - `TIMEZONE`: 时区（默认 `America/Los_Angeles`）
 - `POLL_INTERVAL_SECONDS`: 邮件轮询间隔（默认 60 秒）
-- `REMINDER_THRESHOLDS`: 提醒时间点（默认 `60,15` 分钟）
+- `REMINDER_THRESHOLDS`: 提醒时间点（默认 `30,5` 分钟）
 - `QUIET_HOURS_START/END`: 免打扰时段（默认 21:00 - 07:00）
 - `MORNING_BRIEFING_HOUR`: 早报推送时间（默认 07:00）
 
@@ -60,7 +70,7 @@ python assistant/main.py
 
 ## 🛠️ 技术栈
 - **Core**: Python 3.10
-- **AI**: OpenAI API (GPT-4o-mini)
+- **AI**: OpenAI API (`gpt-5.4-nano` for general chat/reminders, `gpt-5.4-mini` for scheduling parsing)
 - **Weather**: wttr.in (Free API)
 - **Google SDK**: Gmail API, Google Calendar API, Drive API, Docs API
 - **Messaging**: 
@@ -71,7 +81,7 @@ python assistant/main.py
 ## ⚙️ 配置文件说明 (`config.py`)
 - `TIMEZONE`: 默认时区（如 `America/Los_Angeles`）。
 - `POLL_INTERVAL_SECONDS`: 检查邮件的间隔时间。
-- `REMINDER_THRESHOLDS`: 提醒触发阈值（默认 `[60, 15]` 分钟）。
+- `REMINDER_THRESHOLDS`: 提醒触发阈值（默认 `[30, 5]` 分钟）。
 - `QUIET_HOURS_START/END`: 免打扰时段。
 - `WEATHER_CITY`: 获取天气的城市名。
 - `MORNING_BRIEFING_HOUR`: 每日早报触发时间。

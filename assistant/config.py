@@ -8,7 +8,9 @@ load_dotenv(dotenv_path=env_path)
 
 # OPENAI_API_KEY should be set in .env or system environment variable
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-MODEL = "gpt-4o-mini"
+# MODEL = "gpt-4o-mini"
+MODEL = "gpt-5.4-nano" # 更快更便宜的模型，适合频繁交互的场景
+SCHEDULING_MODEL = os.getenv("SCHEDULING_MODEL", "gpt-5.4-mini")  # 关键日程解析使用更稳的模型
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
@@ -36,7 +38,10 @@ TOKEN_FILE = "credentials/token.json"
 
 POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", 60))
 TIMEZONE = os.getenv("TIMEZONE", "America/Los_Angeles")
-CALENDAR_ID = "primary"
+CALENDAR_ID = os.getenv("CALENDAR_ID", "primary")
+_calendar_ids_raw = os.getenv("CALENDAR_IDS", "").strip()
+CALENDAR_IDS = [cid.strip() for cid in _calendar_ids_raw.split(",") if cid.strip()] if _calendar_ids_raw else [CALENDAR_ID]
+CALENDAR_WRITE_ID = os.getenv("CALENDAR_WRITE_ID", CALENDAR_ID)
 
 # Discord Configuration
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -53,9 +58,13 @@ LOG_FILE = "assistant.log"
 # Reminder Configuration
 REMINDER_CACHE_INTERVAL = int(os.getenv("REMINDER_CACHE_INTERVAL", 3600))  # 日历API刷新间隔（秒），默认60分钟
 REMINDER_CHECK_INTERVAL = int(os.getenv("REMINDER_CHECK_INTERVAL", 60))    # 检查缓存间隔（秒），默认1分钟
-REMINDER_THRESHOLDS = [int(x) for x in os.getenv("REMINDER_THRESHOLDS", "60,15").split(",")]  # 提前多少分钟提醒
-REMINDER_MODEL = os.getenv("REMINDER_MODEL", "gpt-4o-mini")  # 提醒消息使用的模型
+REMINDER_THRESHOLDS = [int(x) for x in os.getenv("REMINDER_THRESHOLDS", "30,5").split(",")]  # 提前多少分钟提醒
+REMINDER_MODEL = os.getenv("REMINDER_MODEL", "gpt-5.4-nano")  # 提醒消息使用的模型
 QUIET_HOURS_START = int(os.getenv("QUIET_HOURS_START", 21))  # 免打扰开始（21:00）
 QUIET_HOURS_END = int(os.getenv("QUIET_HOURS_END", 7))       # 免打扰结束（07:00）
 MORNING_BRIEFING_HOUR = int(os.getenv("QUIET_HOURS_END", 7))  # 早间汇报时间
 WEATHER_CITY = os.getenv("WEATHER_CITY", "Los Angeles")       # 天气城市
+
+# Dreaming feature configuration
+DREAMING_ENABLED = os.getenv("DREAMING_ENABLED", "true").lower() == "true"
+DREAM_INTERVAL_HOURS = int(os.getenv("DREAM_INTERVAL_HOURS", 4))

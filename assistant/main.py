@@ -40,17 +40,21 @@ async def schedule_reminder_task(assistant, discord_bot=None, telegram_bot=None)
     await reminder.run()
 
 async def main_async():
-    # 先初始化 Bot（如果需要的话，也可以先初始化 Assistant）
+    # 先初始化 Assistant 以获取共享的 Chatbot 和 DreamGenerator
     discord_bot = None
-    if DISCORD_TOKEN:
-        discord_bot = AssistantBot()
-    
     telegram_bot = None
-    if TELEGRAM_TOKEN:
-        telegram_bot = AssistantTelegramBot()
-        await telegram_bot.initialize(TELEGRAM_TOKEN)
     
-    assistant = PersonalAssistant(discord_bot=discord_bot, telegram_bot=telegram_bot)
+    assistant = PersonalAssistant(discord_bot=None, telegram_bot=None)
+    
+    # 然后使用 Assistant 的 Chatbot 初始化各个 Bot
+    if DISCORD_TOKEN:
+        discord_bot = AssistantBot(chatbot=assistant.chatbot)
+        assistant.discord_bot = discord_bot
+    
+    if TELEGRAM_TOKEN:
+        telegram_bot = AssistantTelegramBot(chatbot=assistant.chatbot)
+        assistant.telegram_bot = telegram_bot
+        await telegram_bot.initialize(TELEGRAM_TOKEN)
     
     # 定义任务列表
     tasks = [
