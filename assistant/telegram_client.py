@@ -85,7 +85,7 @@ class AssistantTelegramBot:
 
         try:
             # 直接生成回复，保持逻辑简单稳定。
-            reply = await asyncio.to_thread(self.chatbot.chat, str(user_id), message.text)
+            reply = self.chatbot.chat(str(user_id), message.text)
             
             # 处理消息长度限制（Telegram 单条消息最大 4096 字符）
             await self._send_message(message.chat_id, reply, context)
