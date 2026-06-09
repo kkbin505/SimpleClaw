@@ -259,10 +259,20 @@ class Chatbot:
         time_context = self._build_time_context()
         self.conversation.add_message(user_id, "user", user_message)
 
+        # 针对聊天机器人场景，覆盖掉邮箱解析的 JSON 强制要求
+        chatbot_prompt = (
+            f"{SYSTEM_PROMPT}\n\n"
+            "【特别注意】你当前处于和用户的实时对话流中：\n"
+            "1. 忽略任何关于“请始终以 JSON 格式返回”的要求，绝对不要在对话中直接输出原始的 JSON 代码块。\n"
+            "2. 当用户需要创建/查询/删除日程时，你必须调用对应的函数工具（如 create_event, list_upcoming_events 等）。\n"
+            "3. 所有工具执行完毕后，请直接以自然的中文（行政秘书口吻）给用户进行正常的对话回复。\n\n"
+            f"{time_context}"
+        )
+
         messages = [
             {
                 "role": "system",
-                "content": f"{SYSTEM_PROMPT}\n\n{time_context}"
+                "content": chatbot_prompt
             },
             *self.conversation.get_history(user_id),
         ]
