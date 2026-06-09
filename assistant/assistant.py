@@ -12,7 +12,7 @@ import json
 import os
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO,  # 恢复为INFO等级
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.FileHandler(LOG_FILE, encoding="utf-8"),

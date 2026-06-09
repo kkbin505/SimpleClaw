@@ -1,7 +1,9 @@
 import os
+import json
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from config import SCOPES, CREDENTIALS_FILE, TOKEN_FILE
 
 
@@ -9,7 +11,16 @@ def get_credentials() -> Credentials:
     creds = None
 
     if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        try:
+            with open(TOKEN_FILE, "r") as f:
+                token_data = json.load(f)
+            actual_scopes = token_data.get("scopes", [])
+            if actual_scopes:
+                missing_scopes = [s for s in SCOPES if s not in actual_scopes]
+                if not missing_scopes:
+                    creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        except Exception:
+            pass
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -30,3 +41,4 @@ def get_credentials() -> Credentials:
             f.write(creds.to_json())
 
     return creds
+

@@ -62,10 +62,12 @@ class AssistantBot(commands.Bot):
         await self.process_commands(message)
 
     async def process_assistant_task(self, message):
+        logger.info(f"进入 process_assistant_task, message: {message.content}")
         async with message.channel.typing():
             try:
-                # 使用 Chatbot 处理对话（包含日程查询、创建、日常闲聊等）
+                logger.info(f"调用 Chatbot.chat 前, user_id: {message.author.id}, content: {message.content}")
                 reply = self.chatbot.chat(str(message.author.id), message.content)
+                logger.info(f"Chatbot.reply: {reply}")
                 await message.reply(reply)
             except Exception as e:
                 logger.error(f"Discord 任务处理出错: {e}", exc_info=True)
